@@ -1,0 +1,56 @@
+import { pgTable, text, serial, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// === TABLE DEFINITIONS ===
+export const searches = pgTable("searches", {
+  id: serial("id").primaryKey(),
+  personName: text("person_name").notNull(),
+  investments: jsonb("investments").$type<CryptoInvestment[]>().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const walletSearches = pgTable("wallet_searches", {
+  id: serial("id").primaryKey(),
+  address: text("address").notNull(),
+  tokens: jsonb("tokens").$type<WalletToken[]>().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// === BASE SCHEMAS ===
+export const insertSearchSchema = createInsertSchema(searches).omit({ id: true, createdAt: true });
+export const insertWalletSearchSchema = createInsertSchema(walletSearches).omit({ id: true, createdAt: true });
+
+// === EXPLICIT API CONTRACT TYPES ===
+export type Search = typeof searches.$inferSelect;
+export type InsertSearch = z.infer<typeof insertSearchSchema>;
+
+export type WalletSearch = typeof walletSearches.$inferSelect;
+export type InsertWalletSearch = z.infer<typeof insertWalletSearchSchema>;
+
+export type CryptoInvestment = {
+  name: string;
+  percentage: number;
+};
+
+export type WalletToken = {
+  name: string;
+  symbol: string;
+  balance: string;
+  balanceUsd: number;
+  percentage: number;
+};
+
+export type CryptoLookupRequest = { personName: string };
+export type CryptoLookupResponse = {
+  personName: string;
+  investments: CryptoInvestment[];
+};
+
+export type WalletLookupRequest = { address: string };
+export type WalletLookupResponse = {
+  address: string;
+  tokens: WalletToken[];
+};
+
+export * from "./models/chat";
