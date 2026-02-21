@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, jsonb, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -17,9 +17,17 @@ export const walletSearches = pgTable("wallet_searches", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const buddies = pgTable("buddies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  contribution: numeric("contribution", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === BASE SCHEMAS ===
 export const insertSearchSchema = createInsertSchema(searches).omit({ id: true, createdAt: true });
 export const insertWalletSearchSchema = createInsertSchema(walletSearches).omit({ id: true, createdAt: true });
+export const insertBuddySchema = createInsertSchema(buddies).omit({ id: true, createdAt: true });
 
 // === EXPLICIT API CONTRACT TYPES ===
 export type Search = typeof searches.$inferSelect;
@@ -27,6 +35,9 @@ export type InsertSearch = z.infer<typeof insertSearchSchema>;
 
 export type WalletSearch = typeof walletSearches.$inferSelect;
 export type InsertWalletSearch = z.infer<typeof insertWalletSearchSchema>;
+
+export type Buddy = typeof buddies.$inferSelect;
+export type InsertBuddy = z.infer<typeof insertBuddySchema>;
 
 export type CryptoInvestment = {
   name: string;

@@ -1,12 +1,15 @@
-# Crypto Tracker
+# DefiBuddy
 
 ## Overview
 
-Crypto Tracker is a full-stack web application with two main features:
+DefiBuddy is a full-stack web application with these main features:
 1. **Personality Lookup**: Look up the top 5 crypto assets that a given Twitter/X personality is invested in or has publicly supported, using OpenAI (via Replit AI Integrations).
 2. **Wallet Lookup**: Enter an Ethereum address to see the top crypto tokens held in that wallet with real-time balances and USD values, using the Ethplorer API.
+3. **My Portfolio**: Clone portfolio allocations from search results, manage them via an AI chatbot assistant (add/remove/rebalance assets).
+4. **Deploy Portfolio via Uniswap**: Check token availability on Uniswap's official token list and execute swaps from ETH into target portfolio assets via MetaMask and the Uniswap V3 SwapRouter.
+5. **Get Staking Rewards**: Button placeholder for upcoming staking rewards feature.
 
-Both features store search history in a PostgreSQL database and display results in a tabbed single-page interface.
+All features use a unified search interface that auto-detects whether input is a name or Ethereum address. Search history is stored in PostgreSQL.
 
 ## User Preferences
 

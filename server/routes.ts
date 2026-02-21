@@ -201,6 +201,137 @@ Always return at least the most well-known crypto associations for the person. U
     }
   });
 
+  app.post("/api/uniswap/check-tokens", async (req, res) => {
+    try {
+      const schema = z.object({
+        symbols: z.array(z.string()),
+      });
+      const { symbols } = schema.parse(req.body);
+
+      const tokenListRes = await fetch("https://tokens.uniswap.org");
+      const tokenList = await tokenListRes.json() as { tokens: Array<{ symbol: string; address: string; chainId: number; decimals: number; name: string }> };
+
+      const mainnetTokens = tokenList.tokens.filter((t: any) => t.chainId === 1);
+
+      const results = symbols.map((sym) => {
+        const token = mainnetTokens.find(
+          (t: any) => t.symbol.toLowerCase() === sym.toLowerCase()
+        );
+        return {
+          symbol: sym,
+          available: !!token,
+          address: token?.address || null,
+          decimals: token?.decimals || null,
+          name: token?.name || null,
+        };
+      });
+
+      res.json({ tokens: results });
+    } catch (err: any) {
+      console.error("Uniswap token check error:", err);
+      res.status(500).json({ message: err.message || "Failed to check tokens" });
+    }
+  });
+
+  app.post("/api/uniswap/pools", async (req, res) => {
+    try {
+      const schema = z.object({
+        symbols: z.array(z.string()),
+      });
+      const { symbols } = schema.parse(req.body);
+      const lowerSymbols = symbols.map((s) => s.toLowerCase());
+
+      const poolsRes = await fetch("https://yields.llama.fi/pools");
+      if (!poolsRes.ok) {
+        return res.status(502).json({ message: "Pool data service unavailable" });
+      }
+      const poolsData = (await poolsRes.json()) as {
+        status: string;
+        data: Array<{
+          pool: string;
+          chain: string;
+          project: string;
+          symbol: string;
+          tvlUsd: number;
+          apy: number | null;
+          apyBase: number | null;
+          apyReward: number | null;
+        }>;
+      };
+
+      if (poolsData.status !== "success" || !poolsData.data) {
+        return res.status(502).json({ message: "Failed to fetch pool data" });
+      }
+
+      const uniswapPools = poolsData.data.filter(
+        (p) =>
+          p.project.includes("uniswap") &&
+          p.chain === "Ethereum" &&
+          p.tvlUsd > 100000
+      );
+
+      const matchingPools = uniswapPools
+        .filter((p) => {
+          const poolSymbols = p.symbol.toLowerCase().split(/[-\/\s]+/).map((s) => s.trim());
+          return poolSymbols.some((ps) => lowerSymbols.includes(ps));
+        })
+        .map((p) => ({
+          id: p.pool,
+          name: p.symbol,
+          project: p.project,
+          chain: p.chain,
+          tvlUsd: p.tvlUsd,
+          apr: p.apy ?? p.apyBase ?? 0,
+          apyBase: p.apyBase ?? 0,
+          apyReward: p.apyReward ?? 0,
+        }))
+        .sort((a, b) => b.apr - a.apr)
+        .slice(0, 20);
+
+      res.json({ pools: matchingPools });
+    } catch (err: any) {
+      console.error("Uniswap pools error:", err);
+      res.status(500).json({ message: err.message || "Failed to fetch pools" });
+    }
+  });
+
+  app.get("/api/buddies", async (req, res) => {
+    try {
+      const buddies = await storage.getBuddies();
+      res.json(buddies);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch buddies" });
+    }
+  });
+
+  app.post("/api/buddies", async (req, res) => {
+    try {
+      const schema = z.object({
+        name: z.string().min(1, "Name is required"),
+        contribution: z.string().refine((v) => !isNaN(Number(v)) && Number(v) >= 0, "Contribution must be a positive number"),
+      });
+      const data = schema.parse(req.body);
+      const buddy = await storage.createBuddy(data);
+      res.json(buddy);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0]?.message || "Invalid input" });
+      }
+      res.status(500).json({ message: "Failed to add buddy" });
+    }
+  });
+
+  app.delete("/api/buddies/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      await storage.deleteBuddy(id);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to remove buddy" });
+    }
+  });
+
   app.post("/api/portfolio/chat", async (req, res) => {
     try {
       const schema = z.object({

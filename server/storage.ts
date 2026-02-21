@@ -1,12 +1,15 @@
 import { db } from "./db";
-import { searches, walletSearches, type InsertSearch, type Search, type InsertWalletSearch, type WalletSearch } from "@shared/schema";
-import { desc } from "drizzle-orm";
+import { searches, walletSearches, buddies, type InsertSearch, type Search, type InsertWalletSearch, type WalletSearch, type Buddy, type InsertBuddy } from "@shared/schema";
+import { desc, eq } from "drizzle-orm";
 
 export interface IStorage {
   createSearch(search: InsertSearch): Promise<Search>;
   getRecentSearches(): Promise<Search[]>;
   createWalletSearch(search: InsertWalletSearch): Promise<WalletSearch>;
   getRecentWalletSearches(): Promise<WalletSearch[]>;
+  getBuddies(): Promise<Buddy[]>;
+  createBuddy(buddy: InsertBuddy): Promise<Buddy>;
+  deleteBuddy(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -26,6 +29,19 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentWalletSearches(): Promise<WalletSearch[]> {
     return await db.select().from(walletSearches).orderBy(desc(walletSearches.createdAt));
+  }
+
+  async getBuddies(): Promise<Buddy[]> {
+    return await db.select().from(buddies).orderBy(desc(buddies.createdAt));
+  }
+
+  async createBuddy(buddy: InsertBuddy): Promise<Buddy> {
+    const [newBuddy] = await db.insert(buddies).values(buddy).returning();
+    return newBuddy;
+  }
+
+  async deleteBuddy(id: number): Promise<void> {
+    await db.delete(buddies).where(eq(buddies.id, id));
   }
 }
 
