@@ -1,8 +1,8 @@
-# 🚀 DefiBuddy
+# 🚀 DefiBuddies
 
 > **Your on-chain co-pilot for social crypto research and delegated DeFi investing**
 
-DefiBuddy is an AI-powered agent that converts **social crypto signals** into structured research and enables aspiring fund managers to allocate capital on behalf of friends while building a transparent, verifiable on-chain track record.
+DefiBuddies is an AI-powered agent that converts **social crypto signals** into structured research and enables aspiring fund managers to allocate capital on behalf of friends while building a transparent, verifiable on-chain track record.
 
 ---
 
@@ -63,9 +63,9 @@ Informal investing without:
 
 ---
 
-# 💡 The Solution: DefiBuddy
+# 💡 The Solution: DefiBuddies
 
-DefiBuddy creates infrastructure for **amateur crypto fund managers**.
+DefiBuddies creates infrastructure for **amateur crypto fund managers**.
 
 It combines:
 
@@ -82,7 +82,7 @@ All into a single, unified workflow.
 
 ## 🔍 Layer 1: Social Research Agent
 
-DefiBuddy analyzes selected public figures and crypto accounts chosen by the aspiring manager.
+DefiBuddies analyzes selected public figures and crypto accounts chosen by the aspiring manager.
 
 ### 📡 Data Sources
 
@@ -113,7 +113,7 @@ The aspiring fund manager:
 - Determines allocation percentages  
 - Defines rebalancing strategy  
 
-DefiBuddy **does not decide capital distribution**.  
+DefiBuddies **does not decide capital distribution**.  
 It supports research, monitoring, and tracking.
 
 ### 🤝 For Friends & Delegators
@@ -140,7 +140,7 @@ This transforms informal investing into **measurable asset management**.
 
 After token selection, capital deployment must be optimized.
 
-DefiBuddy monitors liquidity pools and lending protocols such as:
+DefiBuddies monitors liquidity pools and lending protocols such as:
 
 - Uniswap  
 - Morpho  
@@ -164,7 +164,7 @@ Daily updates and alerts inform decisions about:
 
 # 🎯 Investment Profiles
 
-DefiBuddy supports portfolio construction across predefined risk profiles:
+DefiBuddies supports portfolio construction across predefined risk profiles:
 
 ### 🟢 Conservative
 - Stablecoins  
@@ -196,7 +196,7 @@ The system includes:
 
 # 🚫 What This Is Not
 
-DefiBuddy is **not** an automated trading bot.
+DefiBuddies is **not** an automated trading bot.
 
 It is a structured research and portfolio management framework with:
 
@@ -212,7 +212,7 @@ Crypto has democratized access to markets — but not access to asset management
 
 ---
 
-# 🔓 DefiBuddy Enables
+# 🔓 DefiBuddies Enables
 
 - 🤝 Delegated investing within trusted networks  
 - 📊 Structured social alpha extraction  
@@ -225,5 +225,5 @@ It lowers the barrier to entry for emerging managers while increasing discipline
 
 ## 🧠 In Short
 
-DefiBuddy turns social noise into structured insight —  
+DefiBuddies turns social noise into structured insight —  
 and aspiring investors into accountable fund managers.
