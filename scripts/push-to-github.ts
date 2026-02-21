@@ -2,7 +2,7 @@ import { getUncachableGitHubClient } from '../server/github';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const REPO_NAME = 'defibuddy';
+const REPO_NAME = 'DefiBuddies';
 
 const IGNORE = new Set([
   'node_modules', '.git', 'dist', '.cache', '.config', '.local',
