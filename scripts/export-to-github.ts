@@ -26,7 +26,7 @@ function getAllFiles(dir: string, base: string = ''): { path: string; fullPath: 
 }
 
 async function exportToGitHub() {
-  const repoName = 'DefiBuddy';
+  const repoName = 'DefiBuddies';
 
   console.log('Getting GitHub client...');
   const octokit = await getUncachableGitHubClient();
@@ -47,7 +47,7 @@ async function exportToGitHub() {
     console.log(`Creating repo: ${repoName}...`);
     await octokit.repos.createForAuthenticatedUser({
       name: repoName,
-      description: 'DefiBuddy - AI-powered crypto portfolio tracker',
+      description: 'DefiBuddies - AI-powered crypto portfolio tracker',
       private: false,
       auto_init: false,
     });
@@ -69,7 +69,7 @@ async function exportToGitHub() {
       repo: repoName,
       path: 'README.md',
       message: 'Initial commit',
-      content: Buffer.from('# DefiBuddy\nAI-powered crypto portfolio tracker\n').toString('base64'),
+      content: Buffer.from('# DefiBuddies\nAI-powered crypto portfolio tracker\n').toString('base64'),
     });
     await new Promise(r => setTimeout(r, 2000));
     const { data: ref } = await octokit.git.getRef({ owner: user.login, repo: repoName, ref: 'heads/main' });
@@ -108,7 +108,7 @@ async function exportToGitHub() {
   const { data: commit } = await octokit.git.createCommit({
     owner: user.login,
     repo: repoName,
-    message: 'Export DefiBuddy from Replit',
+    message: 'Export DefiBuddies from Replit',
     tree: newTree.sha,
     parents: [mainSha!],
   });

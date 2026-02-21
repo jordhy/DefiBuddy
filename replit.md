@@ -1,8 +1,8 @@
-# DefiBuddy
+# DefiBuddies
 
 ## Overview
 
-DefiBuddy is a full-stack web application with these main features:
+DefiBuddies is a full-stack web application with these main features:
 1. **Personality Lookup**: Look up the top 5 crypto assets that a given Twitter/X personality is invested in or has publicly supported, using OpenAI (via Replit AI Integrations).
 2. **Wallet Lookup**: Enter an Ethereum address to see the top crypto tokens held in that wallet with real-time balances and USD values, using the Ethplorer API.
 3. **My Portfolio**: Clone portfolio allocations from search results, manage them via an AI chatbot assistant (add/remove/rebalance assets).

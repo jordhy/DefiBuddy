@@ -490,7 +490,7 @@ Always return at least the most well-known crypto associations for the person. U
         messages: [
           {
             role: "system",
-            content: `You are a portfolio management assistant for DefiBuddy. The user has a crypto portfolio and wants to modify it via natural language.
+            content: `You are a portfolio management assistant for DefiBuddies. The user has a crypto portfolio and wants to modify it via natural language.
 
 Current portfolio: ${portfolioDescription}
 

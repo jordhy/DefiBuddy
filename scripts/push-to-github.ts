@@ -56,7 +56,7 @@ async function pushToGitHub() {
     console.log(`Creating repo: ${REPO_NAME}...`);
     const { data: newRepo } = await octokit.repos.createForAuthenticatedUser({
       name: REPO_NAME,
-      description: 'DefiBuddy - AI-powered crypto portfolio tracker',
+      description: 'DefiBuddies - AI-powered crypto portfolio tracker',
       private: false,
       auto_init: false,
     });
@@ -81,7 +81,7 @@ async function pushToGitHub() {
       repo: REPO_NAME,
       path: 'README.md',
       message: 'Initial commit',
-      content: Buffer.from('# DefiBuddy\nAI-powered crypto portfolio tracker\n').toString('base64'),
+      content: Buffer.from('# DefiBuddies\nAI-powered crypto portfolio tracker\n').toString('base64'),
     });
     await new Promise(r => setTimeout(r, 2000));
     const { data: ref } = await octokit.git.getRef({ owner: user.login, repo: REPO_NAME, ref: 'heads/main' });
@@ -120,7 +120,7 @@ async function pushToGitHub() {
   const { data: commit } = await octokit.git.createCommit({
     owner: user.login,
     repo: REPO_NAME,
-    message: 'Push DefiBuddy from Replit',
+    message: 'Push DefiBuddies from Replit',
     tree: newTree.sha,
     parents: [mainSha!],
   });
