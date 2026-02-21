@@ -41,6 +41,7 @@ Preferred communication style: Simple, everyday language.
 - **Tables**:
   - `searches` — stores crypto lookup results (id, personName, investments as JSONB array, createdAt)
   - `wallet_searches` — stores wallet lookup results (id, address, tokens as JSONB array of {name, symbol, balance, balanceUsd}, createdAt)
+  - `nft_metadata` — stores NFT report metadata (id, walletAddress, metadata as JSONB of NftReportMetadata, createdAt)
   - `conversations` — chat conversations (id, title, createdAt)
   - `messages` — chat messages (id, conversationId, role, content, createdAt)
 - **Migrations**: Managed via `drizzle-kit push` (schema push approach, not migration files)

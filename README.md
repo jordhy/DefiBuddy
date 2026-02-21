@@ -1,229 +1,139 @@
-# 🚀 DefiBuddy
+DefiBuddy
+Your on-chain co-pilot for social crypto research and delegated DeFi investing
 
-> **Your on-chain co-pilot for social crypto research and delegated DeFi investing**
+DefiBuddy is an AI-powered agent that converts social crypto signals into structured research and enables aspiring fund managers to allocate capital on behalf of friends while building a transparent, verifiable on-chain track record.
 
-DefiBuddy is an AI-powered agent that converts **social crypto signals** into structured research and enables aspiring fund managers to allocate capital on behalf of friends while building a transparent, verifiable on-chain track record.
+**The Core Problem**
 
----
+Crypto is driven by information velocity.
 
-## 📌 The Core Problem
+Signals emerge on Twitter, in news articles, in threads, and across online communities. But this information is fragmented, emotional, and unstructured. Investors struggle to distinguish a durable signal from temporary hype.
 
-Crypto is driven by **information velocity**.
-
-Signals emerge on:
-- Twitter / X  
-- News articles  
-- Community threads  
-- Online ecosystems  
-
-But this information is:
-- Fragmented  
-- Emotional  
-- Unstructured  
-
-Investors struggle to distinguish **durable signals** from temporary hype.
-
----
-
-### 👤 For Passive Investors
 
 Many people want exposure to crypto and DeFi but:
+•Do not want to manage wallets
+•Do not understand liquidity pools
+•Do not monitor yield changes daily
+•Prefer to rely on someone they trust
 
-- ❌ Do not want to manage wallets  
-- ❌ Do not understand liquidity pools  
-- ❌ Do not monitor yield changes daily  
-- ❌ Prefer to rely on someone they trust  
-
----
-
-### 🧠 For Crypto-Native Researchers
-
-Many individuals:
-
-- ✅ Research tokens daily  
-- ✅ Follow influencers and founders  
-- ✅ Understand DeFi mechanics  
-- ✅ Aspire to become professional fund managers  
+On the other side, many crypto-native individuals:
+•Research tokens daily
+•Follow influencers and founders
+•Understand DeFi mechanics
+•Aspire to become professional fund managers
 
 But they lack:
+•Structured research tools
+•Portfolio management infrastructure
+•Transparent performance tracking
+•A way to build a credible track record
 
-- ❌ Structured research tools  
-- ❌ Portfolio management infrastructure  
-- ❌ Transparent performance tracking  
-- ❌ A credible, verifiable track record  
+The result is informal investing without structure, scalability, or measurable performance history.
 
----
+**The Solution: DefiBuddy**
 
-### ⚠️ The Result
+DefiBuddy creates infrastructure for amateur crypto fund managers.
 
-Informal investing without:
-- Structure  
-- Scalability  
-- Measurable performance history  
+It combines structured social research, human-driven portfolio allocation, DeFi execution monitoring, and performance tracking into a single workflow.
 
----
+**Layer 1: Social Research Agent**
 
-# 💡 The Solution: DefiBuddy
+DefiBuddy analyzes selected public figures or specific crypto accounts that the aspiring fund manager chooses to track.
 
-DefiBuddy creates infrastructure for **amateur crypto fund managers**.
+Data sources include:
+•Twitter / X
+•The broader Google news and web ecosystem
 
-It combines:
+The agent extracts:
+•Tokens most frequently mentioned
+•Frequency and acceleration of mentions
+•Context and trend direction
 
-- Structured social research  
-- Human-driven portfolio allocation  
-- DeFi execution monitoring  
-- Performance tracking  
+It transforms unstructured social conversation into quantified social momentum.
 
-All into a single, unified workflow.
+Importantly, this layer does not execute trades. It produces structured intelligence.
 
----
+**Layer 2: Human-in-the-Loop Portfolio Allocation**
 
-# 🧩 System Architecture
+This is the core of the system.
 
-## 🔍 Layer 1: Social Research Agent
+The human-in-the-loop is the aspiring fund manager.
 
-DefiBuddy analyzes selected public figures and crypto accounts chosen by the aspiring manager.
+This individual:
+•Reviews the structured social insights
+•Performs independent analysis
+•Selects which tokens to include
+•Decides allocation percentages
+•Determines rebalancing strategy
 
-### 📡 Data Sources
+Allocation decisions are made by the aspiring manager. DefiBuddy does not decide capital distribution. It supports research and tracking.
 
-- Twitter / X  
-- Google News & web ecosystem  
+Friends who want exposure:
+•Select a risk profile
+•Delegate execution
+•Maintain transparency
 
-### 🧠 Extracted Insights
+Every allocation, rebalance, and performance metric is recorded.
 
-- Tokens most frequently mentioned  
-- Frequency & acceleration of mentions  
-- Context & trend direction  
+Over time, the aspiring manager builds:
+•A documented allocation history
+•Risk-adjusted return data
+•A transparent, verifiable performance track record
 
-The system transforms unstructured conversation into **quantified social momentum**.
+This transforms informal investing into measurable asset management.
 
-> ⚠️ This layer does **not** execute trades. It produces structured intelligence only.
-
----
-
-## 👤 Layer 2: Human-in-the-Loop Portfolio Allocation
-
-This is the **core** of the system.
-
-The aspiring fund manager:
-
-- Reviews structured social insights  
-- Performs independent analysis  
-- Selects tokens  
-- Determines allocation percentages  
-- Defines rebalancing strategy  
-
-DefiBuddy **does not decide capital distribution**.  
-It supports research, monitoring, and tracking.
-
-### 🤝 For Friends & Delegators
-
-Participants can:
-
-- Select a risk profile  
-- Delegate execution  
-- Maintain full transparency  
-
-Every allocation, rebalance, and performance metric is recorded on-chain.
-
-### 📈 Over Time, Managers Build:
-
-- Documented allocation history  
-- Risk-adjusted return data  
-- Transparent, verifiable performance track record  
-
-This transforms informal investing into **measurable asset management**.
-
----
-
-## 💰 Layer 3: DeFi Yield & Pool Research
+**Layer 3: DeFi Yield and Pool Research**
 
 After token selection, capital deployment must be optimized.
 
-DefiBuddy monitors liquidity pools and lending protocols such as:
+DefiBuddy monitors liquidity pools and lending protocols such as Uniswap and Morpho.
 
-- Uniswap  
-- Morpho  
+The agent tracks:
+•APY fluctuations
+•Yield changes
+•Incentive shifts
+•Relative performance
 
-### 📊 The Agent Tracks:
+It provides daily updates and alerts that inform the aspiring manager’s decisions about:
+•Where to allocate liquidity
+•When to rotate capital
+•When to exit positions
 
-- APY fluctuations  
-- Yield changes  
-- Incentive shifts  
-- Relative performance  
+Again, execution decisions remain human.
 
-Daily updates and alerts inform decisions about:
-
-- Where to allocate liquidity  
-- When to rotate capital  
-- When to exit positions  
-
-> Execution decisions always remain human.
-
----
-
-# 🎯 Investment Profiles
+**Investment Profiles**
 
 DefiBuddy supports portfolio construction across predefined risk profiles:
 
-### 🟢 Conservative
-- Stablecoins  
-- Lower-volatility yield pools  
+Conservative: stablecoins and lower-volatility yield pools
+Balanced: blue-chip tokens with diversified DeFi strategies
+Aggressive: emerging tokens and higher-yield opportunities
 
-### 🟡 Balanced
-- Blue-chip tokens  
-- Diversified DeFi strategies  
+The aspiring fund manager allocates within each profile, building differentiated strategies and performance histories.
 
-### 🔴 Aggressive
-- Emerging tokens  
-- Higher-yield opportunities  
-
-Managers allocate within each profile, building differentiated strategies and performance histories.
-
----
-
-# 🏗 Architecture Overview
+**Architecture Overview**
 
 The system includes:
 
-- 🤖 AI layer for NLP & social signal quantification  
-- 🌐 Data ingestion layer (Twitter + web)  
-- 👤 Human decision layer for allocation  
-- 💧 DeFi monitoring layer (pools & yields)  
-- 📈 Performance tracking layer (on-chain record building)  
+An AI layer for natural language processing and social signal quantification
+A data ingestion layer for Twitter and web sources
+A human decision layer for portfolio allocation
+A DeFi monitoring layer for pools and yields
+A performance tracking layer for on-chain track record building
 
----
+This is not an automated trading bot.
 
-# 🚫 What This Is Not
+It is a structured research and portfolio management framework with human accountability at its center.
 
-DefiBuddy is **not** an automated trading bot.
+**Why This Matters**
 
-It is a structured research and portfolio management framework with:
+Crypto has democratized access to markets, but not access to asset management infrastructure.
 
-- Human accountability  
-- Transparent decision-making  
-- Verifiable on-chain history  
+**DefiBuddy Enables:**
 
----
-
-# 🌍 Why This Matters
-
-Crypto has democratized access to markets — but not access to asset management infrastructure.
-
----
-
-# 🔓 DefiBuddy Enables
-
-- 🤝 Delegated investing within trusted networks  
-- 📊 Structured social alpha extraction  
-- 📈 Transparent performance measurement  
-- 🏆 Track record creation for the next generation of fund managers  
+Delegated investing within trusted networks
+Structured social alpha extraction
+Transparent performance measurement
+Track record creation for the next generation of fund managers
 
 It lowers the barrier to entry for emerging managers while increasing discipline and transparency for investors.
-
----
-
-## 🧠 In Short
-
-DefiBuddy turns social noise into structured insight —  
-and aspiring investors into accountable fund managers.

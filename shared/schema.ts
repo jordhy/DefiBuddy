@@ -24,10 +24,18 @@ export const buddies = pgTable("buddies", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const nftMetadata = pgTable("nft_metadata", {
+  id: serial("id").primaryKey(),
+  walletAddress: text("wallet_address").notNull(),
+  metadata: jsonb("metadata").$type<NftReportMetadata>().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === BASE SCHEMAS ===
 export const insertSearchSchema = createInsertSchema(searches).omit({ id: true, createdAt: true });
 export const insertWalletSearchSchema = createInsertSchema(walletSearches).omit({ id: true, createdAt: true });
 export const insertBuddySchema = createInsertSchema(buddies).omit({ id: true, createdAt: true });
+export const insertNftMetadataSchema = createInsertSchema(nftMetadata).omit({ id: true, createdAt: true });
 
 // === EXPLICIT API CONTRACT TYPES ===
 export type Search = typeof searches.$inferSelect;
@@ -38,6 +46,21 @@ export type InsertWalletSearch = z.infer<typeof insertWalletSearchSchema>;
 
 export type Buddy = typeof buddies.$inferSelect;
 export type InsertBuddy = z.infer<typeof insertBuddySchema>;
+
+export type NftMetadata = typeof nftMetadata.$inferSelect;
+export type InsertNftMetadata = z.infer<typeof insertNftMetadataSchema>;
+
+export type NftReportMetadata = {
+  name: string;
+  description: string;
+  image: string;
+  attributes: Array<{ trait_type: string; value: string | number }>;
+  holdings: Array<{ name: string; symbol: string; balanceUsd: number; percentage: number }>;
+  buddies: Array<{ name: string; contribution: number; percentage: number }>;
+  totalValue: number;
+  totalFund: number;
+  reportDate: string;
+};
 
 export type CryptoInvestment = {
   name: string;

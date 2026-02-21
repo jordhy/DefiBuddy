@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, TrendingUp, History, Loader2, Wallet, DollarSign, Link2, Copy, Briefcase, X, MessageCircle, Send, Bot, User, Rocket, Gift, AlertTriangle, CheckCircle, Users, Plus, Trash2, HandCoins } from "lucide-react";
+import { Search, TrendingUp, History, Loader2, Wallet, DollarSign, Link2, Copy, Briefcase, X, MessageCircle, Send, Bot, User, Rocket, Gift, AlertTriangle, CheckCircle, Users, Plus, Trash2, HandCoins, BarChart3, Printer, Mail, Share2, Gem } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import type { CryptoLookupResponse, WalletLookupResponse, WalletToken, CryptoInvestment, Buddy } from "@shared/schema";
 
 type PortfolioItem = { name: string; symbol?: string; percentage: number };
@@ -58,11 +59,17 @@ export default function Home() {
   const [deployStatus, setDeployStatus] = useState<string | null>(null);
   const [poolsOpen, setPoolsOpen] = useState(false);
   const [poolsLoading, setPoolsLoading] = useState(false);
-  const [pools, setPools] = useState<Array<{ id: string; name: string; project: string; chain: string; tvlUsd: number; apr: number; apyBase: number; apyReward: number }>>([]);
+  const [pools, setPools] = useState<Array<{ id: string; name: string; project: string; chain: string; tvlUsd: number; apr: number; apyBase: number; apyBase7d: number | null; apyReward: number; il7d: number | null; volumeUsd1d: number | null; volumeUsd7d: number | null; feeTier: string | null; exposure: string | null }>>([]);
   const [deployingPoolId, setDeployingPoolId] = useState<string | null>(null);
   const [buddiesOpen, setBuddiesOpen] = useState(false);
   const [buddyName, setBuddyName] = useState("");
   const [buddyContribution, setBuddyContribution] = useState("");
+  const [priceHistory, setPriceHistory] = useState<Record<string, { prices: Array<{ timestamp: number; price: number }>; currentPrice: number; avgPrice: number }>>({});
+  const [priceHistoryLoading, setPriceHistoryLoading] = useState(false);
+  const [priceChartOpen, setPriceChartOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [mintingNft, setMintingNft] = useState(false);
+  const [mintStatus, setMintStatus] = useState<string | null>(null);
   const { toast } = useToast();
 
   const buddiesQuery = useQuery<Buddy[]>({
@@ -468,6 +475,34 @@ export default function Home() {
     },
   });
 
+  const fetchPriceHistory = useCallback(async (symbols: string[]) => {
+    if (symbols.length === 0) return;
+    setPriceHistoryLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/prices/history", { symbols });
+      const data = await res.json();
+      setPriceHistory(data.prices || {});
+    } catch (err) {
+      console.error("Price history fetch error:", err);
+    } finally {
+      setPriceHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (walletMutation.data?.tokens && walletMutation.data.tokens.length > 0) {
+      const symbols = walletMutation.data.tokens.map((t) => t.symbol);
+      fetchPriceHistory(symbols);
+    }
+  }, [walletMutation.data, fetchPriceHistory]);
+
+  useEffect(() => {
+    if (lookupMutation.data?.investments && lookupMutation.data.investments.length > 0) {
+      const symbols = lookupMutation.data.investments.map((a) => a.name);
+      fetchPriceHistory(symbols);
+    }
+  }, [lookupMutation.data, fetchPriceHistory]);
+
   const connectWallet = useCallback(async () => {
     if (!window.ethereum) {
       toast({
@@ -487,6 +522,7 @@ export default function Home() {
         setQuery(address);
         setLastSearchType("wallet");
         lookupMutation.reset();
+        walletMutation.reset();
         walletMutation.mutate(address);
       }
     } catch (err: unknown) {
@@ -500,6 +536,113 @@ export default function Home() {
       setIsConnecting(false);
     }
   }, [toast, lookupMutation, walletMutation]);
+
+  const mintReportAsNFT = useCallback(async () => {
+    if (!connectedAddress || !window.ethereum) {
+      toast({ title: "Connect your wallet first", variant: "destructive" });
+      return;
+    }
+
+    setMintingNft(true);
+    setMintStatus("Preparing report data...");
+
+    try {
+      const tokens = walletMutation.data?.tokens || [];
+      const buddyList = buddiesQuery.data || [];
+      const totalValue = tokens.reduce((sum, t) => sum + t.balanceUsd, 0);
+      const totalFund = buddyList.reduce((sum, b) => sum + Number(b.contribution), 0);
+
+      const metadata = {
+        name: `DefiBuddy Report - ${new Date().toLocaleDateString()}`,
+        description: `Performance report for wallet ${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}. Total portfolio value: $${totalValue.toFixed(2)}. Generated by DefiBuddy.`,
+        image: "",
+        attributes: [
+          { trait_type: "Report Date", value: new Date().toISOString().split("T")[0] },
+          { trait_type: "Wallet", value: `${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}` },
+          { trait_type: "Total Value", value: Math.round(totalValue * 100) / 100 },
+          { trait_type: "Number of Holdings", value: tokens.length },
+          { trait_type: "Number of Buddies", value: buddyList.length },
+          { trait_type: "Total Buddy Fund", value: Math.round(totalFund * 100) / 100 },
+        ],
+        holdings: tokens.map((t) => ({
+          name: t.name,
+          symbol: t.symbol,
+          balanceUsd: t.balanceUsd,
+          percentage: t.percentage,
+        })),
+        buddies: buddyList.map((b) => {
+          const pct = totalFund > 0 ? (Number(b.contribution) / totalFund) * 100 : 0;
+          return { name: b.name, contribution: Number(b.contribution), percentage: Math.round(pct * 10) / 10 };
+        }),
+        totalValue,
+        totalFund,
+        reportDate: new Date().toISOString(),
+      };
+
+      setMintStatus("Saving metadata on-chain reference...");
+      const metaRes = await apiRequest("POST", "/api/nft/metadata", {
+        walletAddress: connectedAddress,
+        metadata,
+      });
+      const { metadataUrl } = (await metaRes.json()) as { id: number; metadataUrl: string };
+
+      const { BrowserProvider, ContractFactory, Contract } = await import("ethers");
+      const provider = new BrowserProvider(window.ethereum);
+      const network = await provider.getNetwork();
+
+      if (network.chainId !== SEPOLIA_CHAIN_ID) {
+        setMintStatus("Please switch MetaMask to Sepolia testnet.");
+        setMintingNft(false);
+        return;
+      }
+
+      const signer = await provider.getSigner();
+      const { NFT_CONTRACT_ABI, NFT_CONTRACT_BYTECODE } = await import("@shared/nftContract");
+
+      let contractAddress = localStorage.getItem("defibuddy_nft_contract");
+
+      if (!contractAddress) {
+        setMintStatus("Deploying NFT contract (one-time)...");
+        const factory = new ContractFactory(NFT_CONTRACT_ABI, NFT_CONTRACT_BYTECODE, signer);
+        const deployed = await factory.deploy();
+        await deployed.waitForDeployment();
+        contractAddress = await deployed.getAddress();
+        localStorage.setItem("defibuddy_nft_contract", contractAddress);
+        setMintStatus("Contract deployed! Minting NFT...");
+      } else {
+        setMintStatus("Minting NFT...");
+      }
+
+      const nftContract = new Contract(contractAddress, NFT_CONTRACT_ABI, signer);
+      const tx = await nftContract.mint(connectedAddress, metadataUrl);
+      setMintStatus("Waiting for confirmation...");
+      const receipt = await tx.wait();
+
+      let tokenId: string | number = "unknown";
+      for (const log of receipt.logs || []) {
+        try {
+          const parsed = nftContract.interface.parseLog({ topics: log.topics as string[], data: log.data });
+          if (parsed?.name === "Transfer") {
+            tokenId = Number(parsed.args[2]);
+            break;
+          }
+        } catch {}
+      }
+
+      setMintStatus(null);
+      toast({
+        title: "NFT Minted!",
+        description: `Token #${tokenId} minted to your wallet on Sepolia.`,
+      });
+    } catch (err: unknown) {
+      console.error("NFT mint error:", err);
+      const message = err instanceof Error ? err.message : "Failed to mint NFT";
+      setMintStatus(null);
+      toast({ title: "Minting failed", description: message, variant: "destructive" });
+    } finally {
+      setMintingNft(false);
+    }
+  }, [connectedAddress, walletMutation.data, buddiesQuery.data, toast]);
 
   const isPending = lookupMutation.isPending || walletMutation.isPending;
   const detectedType = isEthereumAddress(query) ? "wallet" : "personality";
@@ -590,15 +733,10 @@ export default function Home() {
             size="sm"
             className="gap-1.5 shrink-0"
             data-testid="button-staking-rewards-nav"
-            onClick={() => {
-              toast({
-                title: "Staking Rewards",
-                description: "Staking rewards feature coming soon! This will allow you to view and claim rewards from supported staking protocols.",
-              });
-            }}
+            onClick={() => setReportOpen(true)}
           >
-            <Gift className="h-3.5 w-3.5" />
-            Staking Rewards
+            <BarChart3 className="h-3.5 w-3.5" />
+            Report Performance
           </Button>
 
           <Button
@@ -622,8 +760,8 @@ export default function Home() {
             <DollarSign className="h-3.5 w-3.5 text-primary" />
             <span className="text-primary">
               {buddiesQuery.data
-                ? `$${buddiesQuery.data.reduce((sum, b) => sum + Number(b.contribution), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : "$0.00"}
+                ? buddiesQuery.data.reduce((sum, b) => sum + Number(b.contribution), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : "0.00"}
             </span>
           </div>
 
@@ -680,34 +818,6 @@ export default function Home() {
                       </li>
                     ))}
                   </ol>
-                  <div className="space-y-2">
-                    <Button
-                      size="sm"
-                      className="w-full gap-1.5"
-                      onClick={deployPortfolio}
-                      disabled={deployLoading}
-                      data-testid="button-deploy-portfolio"
-                    >
-                      {deployLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
-                      Deploy Portfolio via Uniswap
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-1.5"
-                      data-testid="button-staking-rewards"
-                      onClick={() => {
-                        toast({
-                          title: "Staking Rewards",
-                          description: "Staking rewards feature coming soon! This will allow you to view and claim rewards from supported staking protocols.",
-                        });
-                      }}
-                    >
-                      <Gift className="h-3.5 w-3.5" />
-                      Get Staking Rewards
-                    </Button>
-                  </div>
 
                   {deployStatus && (
                     <div className="rounded-md border p-3 text-sm" data-testid="text-deploy-status">
@@ -899,36 +1009,50 @@ export default function Home() {
                     {pools.map((pool, index) => (
                       <li
                         key={pool.id}
-                        className="flex items-center gap-3 p-3 rounded-md bg-muted/50"
+                        className="flex flex-col gap-2 p-3 rounded-md bg-muted/50"
                         data-testid={`pool-item-${index}`}
                       >
-                        <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary text-primary-foreground text-sm font-medium shrink-0">
-                          {index + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{pool.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {pool.project} · TVL ${pool.tvlUsd >= 1_000_000 ? `${(pool.tvlUsd / 1_000_000).toFixed(1)}M` : `${(pool.tvlUsd / 1_000).toFixed(0)}K`}
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary text-primary-foreground text-sm font-medium shrink-0">
+                            {index + 1}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{pool.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {pool.project}{pool.feeTier ? ` · ${pool.feeTier} fee` : ""}
+                            </div>
                           </div>
+                          <Badge
+                            variant={pool.apr > 10 ? "default" : "secondary"}
+                            className="text-xs font-bold shrink-0"
+                            data-testid={`pool-apr-${index}`}
+                          >
+                            {pool.apr.toFixed(2)}% APR
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs gap-1 shrink-0"
+                            data-testid={`button-deploy-pool-${index}`}
+                            disabled={deployingPoolId !== null}
+                            onClick={() => deployToPool(pool)}
+                          >
+                            {deployingPoolId === pool.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Rocket className="h-3 w-3" />}
+                            Deploy
+                          </Button>
                         </div>
-                        <Badge
-                          variant={pool.apr > 10 ? "default" : "secondary"}
-                          className="text-xs font-bold shrink-0"
-                          data-testid={`pool-apr-${index}`}
-                        >
-                          {pool.apr.toFixed(2)}% APR
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs gap-1 shrink-0"
-                          data-testid={`button-deploy-pool-${index}`}
-                          disabled={deployingPoolId !== null}
-                          onClick={() => deployToPool(pool)}
-                        >
-                          {deployingPoolId === pool.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Rocket className="h-3 w-3" />}
-                          Deploy
-                        </Button>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 pl-10 text-xs text-muted-foreground">
+                          <span data-testid={`pool-tvl-${index}`}>TVL <span className="font-medium text-foreground">${pool.tvlUsd >= 1_000_000 ? `${(pool.tvlUsd / 1_000_000).toFixed(1)}M` : `${(pool.tvlUsd / 1_000).toFixed(0)}K`}</span></span>
+                          {pool.volumeUsd1d != null && (
+                            <span data-testid={`pool-vol-${index}`}>24h Vol <span className="font-medium text-foreground">${pool.volumeUsd1d >= 1_000_000 ? `${(pool.volumeUsd1d / 1_000_000).toFixed(1)}M` : `${(pool.volumeUsd1d / 1_000).toFixed(0)}K`}</span></span>
+                          )}
+                          {pool.apyBase7d != null && (
+                            <span data-testid={`pool-apr7d-${index}`}>7d APR <span className="font-medium text-foreground">{pool.apyBase7d.toFixed(2)}%</span></span>
+                          )}
+                          {pool.il7d != null && pool.il7d !== 0 && (
+                            <span data-testid={`pool-il-${index}`}>7d IL <span className="font-medium text-destructive">{pool.il7d.toFixed(2)}%</span></span>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ol>
@@ -1013,28 +1137,44 @@ export default function Home() {
                 <TrendingUp className="h-5 w-5 text-primary" />
                 {lookupMutation.data.personName}
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs gap-1.5"
-                data-testid="button-clone-personality"
-                onClick={() => {
-                  const items = lookupMutation.data!.investments.map((a) => ({
-                    name: a.name,
-                    percentage: a.percentage,
-                  }));
-                  setPortfolio({ source: lookupMutation.data!.personName, items });
-                  toast({ title: "Portfolio saved!", description: `Cloned ${lookupMutation.data!.personName}'s portfolio.` });
-                }}
-              >
-                <Copy className="h-3 w-3" />
-                Clone Portfolio
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  data-testid="button-price-chart-personality"
+                  onClick={() => setPriceChartOpen(true)}
+                  disabled={priceHistoryLoading || Object.keys(priceHistory).length === 0}
+                >
+                  {priceHistoryLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <BarChart3 className="h-3 w-3" />}
+                  30d Chart
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  data-testid="button-clone-personality"
+                  onClick={() => {
+                    const items = lookupMutation.data!.investments.map((a) => ({
+                      name: a.name,
+                      percentage: a.percentage,
+                    }));
+                    setPortfolio({ source: lookupMutation.data!.personName, items });
+                    toast({ title: "Portfolio saved!", description: `Cloned ${lookupMutation.data!.personName}'s portfolio.` });
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  Clone Portfolio
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {lookupMutation.data.investments.length > 0 ? (
                 <ol className="space-y-2">
-                  {lookupMutation.data.investments.map((asset, index) => (
+                  {lookupMutation.data.investments.map((asset, index) => {
+                    const ph = priceHistory[asset.name];
+                    const priceChange = ph ? ((ph.currentPrice - ph.avgPrice) / ph.avgPrice * 100) : null;
+                    return (
                     <li
                       key={index}
                       className="flex items-center gap-3 p-3 rounded-md bg-muted/50"
@@ -1044,9 +1184,22 @@ export default function Home() {
                         {index + 1}
                       </span>
                       <span className="font-medium flex-1">{asset.name}</span>
-                      <Badge variant="secondary" className="text-xs font-semibold">{asset.percentage}%</Badge>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {ph ? (
+                          <div className="text-right" data-testid={`asset-price-info-${index}`}>
+                            <div className="text-xs font-medium">{formatUsd(ph.currentPrice)}</div>
+                            <div className={`text-[10px] ${priceChange && priceChange >= 0 ? "text-green-500" : "text-red-500"}`}>
+                              {priceChange !== null ? `${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(1)}% vs 30d avg` : ""}
+                            </div>
+                          </div>
+                        ) : priceHistoryLoading ? (
+                          <Skeleton className="h-6 w-16" />
+                        ) : null}
+                        <Badge variant="secondary" className="text-xs font-semibold">{asset.percentage}%</Badge>
+                      </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ol>
               ) : (
                 <p className="text-muted-foreground text-sm" data-testid="text-no-results">
@@ -1064,30 +1217,46 @@ export default function Home() {
                 <Wallet className="h-5 w-5 text-primary" />
                 <span className="font-mono text-sm">{truncateAddress(walletMutation.data.address)}</span>
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs gap-1.5"
-                data-testid="button-clone-wallet"
-                onClick={() => {
-                  const items = walletMutation.data!.tokens.map((t) => ({
-                    name: t.name,
-                    symbol: t.symbol,
-                    percentage: t.percentage,
-                  }));
-                  const addr = walletMutation.data!.address;
-                  setPortfolio({ source: `${addr.slice(0, 6)}...${addr.slice(-4)}`, items });
-                  toast({ title: "Portfolio saved!", description: "Cloned wallet portfolio." });
-                }}
-              >
-                <Copy className="h-3 w-3" />
-                Clone Portfolio
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  data-testid="button-price-chart"
+                  onClick={() => setPriceChartOpen(true)}
+                  disabled={priceHistoryLoading || Object.keys(priceHistory).length === 0}
+                >
+                  {priceHistoryLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <BarChart3 className="h-3 w-3" />}
+                  30d Chart
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs gap-1.5"
+                  data-testid="button-clone-wallet"
+                  onClick={() => {
+                    const items = walletMutation.data!.tokens.map((t) => ({
+                      name: t.name,
+                      symbol: t.symbol,
+                      percentage: t.percentage,
+                    }));
+                    const addr = walletMutation.data!.address;
+                    setPortfolio({ source: `${addr.slice(0, 6)}...${addr.slice(-4)}`, items });
+                    toast({ title: "Portfolio saved!", description: "Cloned wallet portfolio." });
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  Clone Portfolio
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {walletMutation.data.tokens.length > 0 ? (
                 <ol className="space-y-2">
-                  {walletMutation.data.tokens.map((token, index) => (
+                  {walletMutation.data.tokens.map((token, index) => {
+                    const ph = priceHistory[token.symbol];
+                    const priceChange = ph ? ((ph.currentPrice - ph.avgPrice) / ph.avgPrice * 100) : null;
+                    return (
                     <li
                       key={index}
                       className="flex items-center gap-3 p-3 rounded-md bg-muted/50"
@@ -1114,9 +1283,22 @@ export default function Home() {
                           )}
                         </div>
                       </div>
-                          <Badge variant="secondary" className="text-xs font-semibold shrink-0">{token.percentage}%</Badge>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {ph ? (
+                          <div className="text-right" data-testid={`token-price-info-${index}`}>
+                            <div className="text-xs font-medium">{formatUsd(ph.currentPrice)}</div>
+                            <div className={`text-[10px] ${priceChange && priceChange >= 0 ? "text-green-500" : "text-red-500"}`}>
+                              {priceChange !== null ? `${priceChange >= 0 ? "+" : ""}${priceChange.toFixed(1)}% vs 30d avg` : ""}
+                            </div>
+                          </div>
+                        ) : priceHistoryLoading ? (
+                          <Skeleton className="h-6 w-16" />
+                        ) : null}
+                        <Badge variant="secondary" className="text-xs font-semibold shrink-0">{token.percentage}%</Badge>
+                      </div>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ol>
               ) : (
                 <p className="text-muted-foreground text-sm" data-testid="text-no-wallet-results">
@@ -1126,6 +1308,257 @@ export default function Home() {
             </CardContent>
           </Card>
         )}
+
+        <Dialog open={priceChartOpen} onOpenChange={setPriceChartOpen}>
+          <DialogContent className="sm:max-w-lg" data-testid="dialog-price-chart">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                30-Day Price History
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {Object.entries(priceHistory).map(([symbol, data]) => {
+                const chartData = data.prices.map((p) => ({
+                  date: new Date(p.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                  price: p.price,
+                }));
+                const changePercent = ((data.currentPrice - data.avgPrice) / data.avgPrice * 100);
+                return (
+                  <div key={symbol} className="space-y-1" data-testid={`chart-${symbol}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">{symbol}</span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-muted-foreground">Avg: {formatUsd(data.avgPrice)}</span>
+                        <span className="text-muted-foreground">Now: {formatUsd(data.currentPrice)}</span>
+                        <Badge variant={changePercent >= 0 ? "default" : "destructive"} className="text-[10px]">
+                          {changePercent >= 0 ? "+" : ""}{changePercent.toFixed(1)}%
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="h-28 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <XAxis dataKey="date" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 9 }} domain={["auto", "auto"]} width={50} tickFormatter={(v) => `$${v >= 1000 ? `${(v/1000).toFixed(0)}K` : v.toFixed(0)}`} />
+                          <Tooltip formatter={(value: number) => [`$${value.toFixed(2)}`, "Price"]} labelStyle={{ fontSize: 11 }} contentStyle={{ fontSize: 11 }} />
+                          <ReferenceLine y={data.avgPrice} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" label={{ value: "Avg", fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+                          <Line type="monotone" dataKey="price" stroke={changePercent >= 0 ? "hsl(142, 76%, 36%)" : "hsl(0, 84%, 60%)"} strokeWidth={1.5} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                );
+              })}
+              {Object.keys(priceHistory).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No price data available for these assets.</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-hidden flex flex-col" data-testid="dialog-report">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Performance Report
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1" id="report-content">
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Wallet Holdings</h3>
+                {walletMutation.data?.tokens && walletMutation.data.tokens.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between p-3 rounded-md bg-primary/5 border" data-testid="report-total-value">
+                      <span className="text-sm font-medium">Total Value</span>
+                      <span className="font-bold text-primary">
+                        {formatUsd(walletMutation.data.tokens.reduce((sum, t) => sum + t.balanceUsd, 0))}
+                      </span>
+                    </div>
+                    <ol className="space-y-2">
+                      {walletMutation.data.tokens.map((token, i) => {
+                        const ph = priceHistory[token.symbol];
+                        const changePercent = ph ? ((ph.currentPrice - ph.avgPrice) / ph.avgPrice * 100) : null;
+                        return (
+                          <li key={i} className="flex items-center gap-3 p-2.5 rounded-md bg-muted/50" data-testid={`report-token-${i}`}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm truncate">{token.name}</span>
+                                <Badge variant="outline" className="text-[10px] shrink-0">{token.symbol}</Badge>
+                              </div>
+                              <span className="text-xs text-muted-foreground">{formatUsd(token.balanceUsd)}</span>
+                            </div>
+                            {changePercent !== null ? (
+                              <div className="text-right shrink-0" data-testid={`report-change-${i}`}>
+                                <div className="text-xs font-medium">{formatUsd(ph!.currentPrice)}</div>
+                                <div className={`text-[10px] font-medium ${changePercent >= 0 ? "text-green-500" : "text-red-500"}`}>
+                                  {changePercent >= 0 ? "+" : ""}{changePercent.toFixed(1)}% vs 30d avg
+                                </div>
+                              </div>
+                            ) : priceHistoryLoading ? (
+                              <Skeleton className="h-6 w-14" />
+                            ) : null}
+                            <Badge variant="secondary" className="text-xs font-semibold shrink-0">{token.percentage}%</Badge>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                    {Object.keys(priceHistory).length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">30-Day Trend</h4>
+                        {walletMutation.data.tokens.slice(0, 3).map((token) => {
+                          const ph = priceHistory[token.symbol];
+                          if (!ph) return null;
+                          const chartData = ph.prices.map((p) => ({
+                            date: new Date(p.timestamp * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                            price: p.price,
+                          }));
+                          const changePercent = ((ph.currentPrice - ph.avgPrice) / ph.avgPrice * 100);
+                          return (
+                            <div key={token.symbol} className="space-y-0.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium">{token.symbol}</span>
+                                <Badge variant={changePercent >= 0 ? "default" : "destructive"} className="text-[10px]">
+                                  {changePercent >= 0 ? "+" : ""}{changePercent.toFixed(1)}%
+                                </Badge>
+                              </div>
+                              <div className="h-20 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <LineChart data={chartData}>
+                                    <XAxis dataKey="date" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
+                                    <YAxis tick={{ fontSize: 8 }} domain={["auto", "auto"]} width={45} tickFormatter={(v) => `$${v >= 1000 ? `${(v/1000).toFixed(0)}K` : v.toFixed(0)}`} />
+                                    <Tooltip formatter={(value: number) => [`$${value.toFixed(2)}`, "Price"]} labelStyle={{ fontSize: 10 }} contentStyle={{ fontSize: 10 }} />
+                                    <ReferenceLine y={ph.avgPrice} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                                    <Line type="monotone" dataKey="price" stroke={changePercent >= 0 ? "hsl(142, 76%, 36%)" : "hsl(0, 84%, 60%)"} strokeWidth={1.5} dot={false} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground" data-testid="report-no-wallet">
+                    No wallet data. Search for a wallet address first.
+                  </p>
+                )}
+              </div>
+
+              {buddiesQuery.data && buddiesQuery.data.length > 0 && (() => {
+                const totalFund = buddiesQuery.data.reduce((sum, b) => sum + Number(b.contribution), 0);
+                return (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Buddies Fund Allocation</h3>
+                    <div className="flex items-center justify-between p-3 rounded-md bg-primary/5 border" data-testid="report-fund-total">
+                      <span className="text-sm font-medium">Total Fund</span>
+                      <span className="font-bold text-primary">{formatUsd(totalFund)}</span>
+                    </div>
+                    <ol className="space-y-1.5">
+                      {buddiesQuery.data.map((buddy) => {
+                        const pct = totalFund > 0 ? (Number(buddy.contribution) / totalFund * 100) : 0;
+                        return (
+                          <li key={buddy.id} className="flex items-center gap-3 p-2.5 rounded-md bg-muted/50" data-testid={`report-buddy-${buddy.id}`}>
+                            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                              <User className="h-3 w-3 text-primary" />
+                            </div>
+                            <span className="font-medium text-sm flex-1 truncate">{buddy.name}</span>
+                            <span className="text-xs text-muted-foreground">{formatUsd(Number(buddy.contribution))}</span>
+                            <Badge variant="secondary" className="text-xs font-semibold shrink-0">{pct.toFixed(1)}%</Badge>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+                );
+              })()}
+
+              <div className="flex gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  data-testid="button-report-print"
+                  onClick={() => {
+                    window.print();
+                  }}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Print to PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  data-testid="button-report-email"
+                  onClick={() => {
+                    const totalValue = walletMutation.data?.tokens
+                      ? formatUsd(walletMutation.data.tokens.reduce((sum, t) => sum + t.balanceUsd, 0))
+                      : "$0.00";
+                    const tokenLines = walletMutation.data?.tokens
+                      ? walletMutation.data.tokens.map((t) => `${t.name} (${t.symbol}): ${formatUsd(t.balanceUsd)} - ${t.percentage}%`).join("%0A")
+                      : "No wallet data";
+                    const buddyLines = buddiesQuery.data && buddiesQuery.data.length > 0
+                      ? buddiesQuery.data.map((b) => `${b.name}: ${formatUsd(Number(b.contribution))}`).join("%0A")
+                      : "";
+                    const subject = encodeURIComponent(`DefiBuddy Performance Report - ${new Date().toLocaleDateString()}`);
+                    const body = `Portfolio Value: ${totalValue}%0A%0AHoldings:%0A${tokenLines}${buddyLines ? `%0A%0ABuddies:%0A${buddyLines}` : ""}`;
+                    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
+                  }}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Send Email
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  data-testid="button-report-share"
+                  onClick={() => {
+                    const totalValue = walletMutation.data?.tokens
+                      ? formatUsd(walletMutation.data.tokens.reduce((sum, t) => sum + t.balanceUsd, 0))
+                      : "$0.00";
+                    const text = `My DefiBuddy Portfolio Report - Total Value: ${totalValue}. Check out DefiBuddy for AI-powered crypto research!`;
+                    if (navigator.share) {
+                      navigator.share({ title: "DefiBuddy Performance Report", text }).catch(() => {});
+                    } else {
+                      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                      window.open(twitterUrl, "_blank", "noopener,noreferrer");
+                    }
+                  }}
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Share
+                </Button>
+              </div>
+              <div className="pt-1">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full gap-2"
+                  data-testid="button-mint-nft"
+                  disabled={mintingNft || !connectedAddress}
+                  onClick={mintReportAsNFT}
+                >
+                  {mintingNft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gem className="h-4 w-4" />}
+                  Mint as NFT
+                </Button>
+                {mintStatus && (
+                  <p className="text-xs text-muted-foreground mt-1.5 text-center" data-testid="text-mint-status">
+                    {mintStatus}
+                  </p>
+                )}
+                {!connectedAddress && (
+                  <p className="text-xs text-muted-foreground mt-1 text-center">
+                    Connect your wallet to mint
+                  </p>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {historyQuery.data && historyQuery.data.length > 0 && (
           <Card data-testid="card-history">

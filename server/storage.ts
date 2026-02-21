@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { searches, walletSearches, buddies, type InsertSearch, type Search, type InsertWalletSearch, type WalletSearch, type Buddy, type InsertBuddy } from "@shared/schema";
+import { searches, walletSearches, buddies, nftMetadata, type InsertSearch, type Search, type InsertWalletSearch, type WalletSearch, type Buddy, type InsertBuddy, type NftMetadata, type InsertNftMetadata } from "@shared/schema";
 import { desc, eq } from "drizzle-orm";
 
 export interface IStorage {
@@ -10,6 +10,8 @@ export interface IStorage {
   getBuddies(): Promise<Buddy[]>;
   createBuddy(buddy: InsertBuddy): Promise<Buddy>;
   deleteBuddy(id: number): Promise<void>;
+  createNftMetadata(data: InsertNftMetadata): Promise<NftMetadata>;
+  getNftMetadata(id: number): Promise<NftMetadata | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -42,6 +44,16 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBuddy(id: number): Promise<void> {
     await db.delete(buddies).where(eq(buddies.id, id));
+  }
+
+  async createNftMetadata(data: InsertNftMetadata): Promise<NftMetadata> {
+    const [newMeta] = await db.insert(nftMetadata).values(data).returning();
+    return newMeta;
+  }
+
+  async getNftMetadata(id: number): Promise<NftMetadata | undefined> {
+    const [meta] = await db.select().from(nftMetadata).where(eq(nftMetadata.id, id));
+    return meta;
   }
 }
 

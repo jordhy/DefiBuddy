@@ -255,7 +255,15 @@ Always return at least the most well-known crypto associations for the person. U
           tvlUsd: number;
           apy: number | null;
           apyBase: number | null;
+          apyBase7d: number | null;
           apyReward: number | null;
+          il7d: number | null;
+          volumeUsd1d: number | null;
+          volumeUsd7d: number | null;
+          exposure: string | null;
+          poolMeta: string | null;
+          underlyingTokens: string[] | null;
+          rewardTokens: string[] | null;
         }>;
       };
 
@@ -267,7 +275,7 @@ Always return at least the most well-known crypto associations for the person. U
         (p) =>
           p.project.includes("uniswap") &&
           p.chain === "Ethereum" &&
-          p.tvlUsd > 100000
+          p.tvlUsd > 50000
       );
 
       const matchingPools = uniswapPools
@@ -275,16 +283,25 @@ Always return at least the most well-known crypto associations for the person. U
           const poolSymbols = p.symbol.toLowerCase().split(/[-\/\s]+/).map((s) => s.trim());
           return poolSymbols.some((ps) => lowerSymbols.includes(ps));
         })
-        .map((p) => ({
-          id: p.pool,
-          name: p.symbol,
-          project: p.project,
-          chain: p.chain,
-          tvlUsd: p.tvlUsd,
-          apr: p.apy ?? p.apyBase ?? 0,
-          apyBase: p.apyBase ?? 0,
-          apyReward: p.apyReward ?? 0,
-        }))
+        .map((p) => {
+          const feeTier = p.poolMeta ? p.poolMeta.replace(/[^0-9.%]/g, "") : null;
+          return {
+            id: p.pool,
+            name: p.symbol,
+            project: p.project,
+            chain: p.chain,
+            tvlUsd: p.tvlUsd,
+            apr: p.apy ?? p.apyBase ?? 0,
+            apyBase: p.apyBase ?? 0,
+            apyBase7d: p.apyBase7d ?? null,
+            apyReward: p.apyReward ?? 0,
+            il7d: p.il7d ?? null,
+            volumeUsd1d: p.volumeUsd1d ?? null,
+            volumeUsd7d: p.volumeUsd7d ?? null,
+            feeTier,
+            exposure: p.exposure ?? null,
+          };
+        })
         .sort((a, b) => b.apr - a.apr)
         .slice(0, 20);
 
@@ -292,6 +309,125 @@ Always return at least the most well-known crypto associations for the person. U
     } catch (err: any) {
       console.error("Uniswap pools error:", err);
       res.status(500).json({ message: err.message || "Failed to fetch pools" });
+    }
+  });
+
+  const GECKO_TERMINAL_BASE = "https://api.geckoterminal.com/api/v2";
+  const SEPOLIA_NETWORK = "sepolia-testnet";
+
+  async function findSepoliaPool(symbol: string): Promise<{ poolAddress: string; tokenPrice: string } | null> {
+    try {
+      const searchRes = await fetch(
+        `${GECKO_TERMINAL_BASE}/search/pools?query=${encodeURIComponent(symbol)}&network=${SEPOLIA_NETWORK}&page=1`
+      );
+      if (!searchRes.ok) return null;
+      const searchData = (await searchRes.json()) as {
+        data: Array<{ attributes: { name: string; address: string; base_token_price_usd: string } }>;
+      };
+      const pool = searchData.data?.find((p) => {
+        const name = p.attributes.name.toUpperCase();
+        const sym = symbol.toUpperCase();
+        return name.startsWith(sym + " /") || name.startsWith(sym + "/") || name.includes("/ " + sym) || name.includes("/" + sym);
+      });
+      if (!pool) return null;
+      return { poolAddress: pool.attributes.address, tokenPrice: pool.attributes.base_token_price_usd };
+    } catch {
+      return null;
+    }
+  }
+
+  app.post("/api/prices/history", async (req, res) => {
+    try {
+      const schema = z.object({
+        symbols: z.array(z.string()).max(10),
+      });
+      const { symbols } = schema.parse(req.body);
+
+      const results: Record<string, { prices: Array<{ timestamp: number; price: number }>; currentPrice: number; avgPrice: number }> = {};
+
+      const fetchPromises = symbols.map(async (symbol) => {
+        try {
+          const poolInfo = await findSepoliaPool(symbol);
+          if (!poolInfo) return;
+
+          const ohlcvRes = await fetch(
+            `${GECKO_TERMINAL_BASE}/networks/${SEPOLIA_NETWORK}/pools/${poolInfo.poolAddress}/ohlcv/day?aggregate=1&limit=30`
+          );
+          if (!ohlcvRes.ok) return;
+
+          const ohlcvData = (await ohlcvRes.json()) as {
+            data: { attributes: { ohlcv_list: Array<[number, string, string, string, string, string]> } };
+          };
+
+          const ohlcvList = ohlcvData.data?.attributes?.ohlcv_list;
+          if (!ohlcvList || ohlcvList.length === 0) return;
+
+          const prices = ohlcvList
+            .map((entry) => ({
+              timestamp: entry[0],
+              price: Math.round(parseFloat(entry[4]) * 100) / 100,
+            }))
+            .reverse();
+
+          const currentPrice = parseFloat(poolInfo.tokenPrice) || prices[prices.length - 1]?.price || 0;
+          const avgPrice = Math.round((prices.reduce((sum, p) => sum + p.price, 0) / prices.length) * 100) / 100;
+
+          results[symbol] = {
+            prices,
+            currentPrice: Math.round(currentPrice * 100) / 100,
+            avgPrice,
+          };
+        } catch (err) {
+          console.error(`Price fetch error for ${symbol}:`, err);
+        }
+      });
+
+      await Promise.all(fetchPromises);
+      res.json({ prices: results });
+    } catch (err: any) {
+      console.error("Price history error:", err);
+      res.status(500).json({ message: err.message || "Failed to fetch price history" });
+    }
+  });
+
+  app.post("/api/nft/metadata", async (req, res) => {
+    try {
+      const schema = z.object({
+        walletAddress: z.string().min(1),
+        metadata: z.object({
+          name: z.string(),
+          description: z.string(),
+          image: z.string(),
+          attributes: z.array(z.object({ trait_type: z.string(), value: z.union([z.string(), z.number()]) })),
+          holdings: z.array(z.object({ name: z.string(), symbol: z.string(), balanceUsd: z.number(), percentage: z.number() })),
+          buddies: z.array(z.object({ name: z.string(), contribution: z.number(), percentage: z.number() })),
+          totalValue: z.number(),
+          totalFund: z.number(),
+          reportDate: z.string(),
+        }),
+      });
+      const data = schema.parse(req.body);
+      const saved = await storage.createNftMetadata(data);
+      const metadataUrl = `${req.protocol}://${req.get("host")}/api/nft/metadata/${saved.id}`;
+      res.json({ id: saved.id, metadataUrl });
+    } catch (err: any) {
+      if (err?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid metadata format", errors: err.errors });
+      }
+      console.error("NFT metadata error:", err);
+      res.status(500).json({ message: err.message || "Failed to store NFT metadata" });
+    }
+  });
+
+  app.get("/api/nft/metadata/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      const meta = await storage.getNftMetadata(id);
+      if (!meta) return res.status(404).json({ message: "Not found" });
+      res.json(meta.metadata);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message || "Failed to fetch metadata" });
     }
   });
 
