@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, TrendingUp, History, Loader2, Wallet, DollarSign, Link2, Copy, Briefcase, X, MessageCircle, Send, Bot, User, Rocket, Gift, AlertTriangle, CheckCircle, Users, Plus, Trash2, HandCoins, BarChart3, Printer, Mail, Share2, Gem } from "lucide-react";
+import { Search, TrendingUp, History, Loader2, Wallet, DollarSign, Link2, Copy, Briefcase, X, MessageCircle, Send, Bot, User, Rocket, Gift, AlertTriangle, CheckCircle, Users, Plus, Trash2, HandCoins, BarChart3, Printer, Mail, Share2, Gem, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import type { CryptoLookupResponse, WalletLookupResponse, WalletToken, CryptoInvestment, Buddy } from "@shared/schema";
@@ -1033,12 +1033,13 @@ export default function Home() {
                             variant="outline"
                             size="sm"
                             className="h-7 px-2 text-xs gap-1 shrink-0"
-                            data-testid={`button-deploy-pool-${index}`}
-                            disabled={deployingPoolId !== null}
-                            onClick={() => deployToPool(pool)}
+                            data-testid={`button-view-pool-${index}`}
+                            asChild
                           >
-                            {deployingPoolId === pool.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Rocket className="h-3 w-3" />}
-                            Deploy
+                            <a href={`https://app.uniswap.org/explore/pools/ethereum/${pool.id}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3" />
+                              View
+                            </a>
                           </Button>
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 pl-10 text-xs text-muted-foreground">
